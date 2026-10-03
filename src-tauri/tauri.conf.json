@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "Payroll",
+  "version": "1.0.0",
+  "identifier": "com.payroll.app",
+  "build": {
+    "frontendDist": "./resources",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run desktop:prepare"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/henry.w@example.net",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": [
+      "resources/**/*"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

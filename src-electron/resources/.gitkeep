@@ -1,0 +1,2 @@
+This folder is filled by `npm run electron:prepare` / `npm run electron:build`.
+Do not commit node.exe or the Next standalone server.

@@ -1,0 +1,60 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# tauri / desktop bundle artifacts
+src-tauri/target/
+src-tauri/resources/server/
+src-tauri/resources/node
+src-tauri/resources/node.exe
+src-tauri/resources/_node_tmp/
+
+# electron desktop bundle artifacts
+/dist-electron/
+src-electron/resources/server/
+src-electron/resources/node
+src-electron/resources/node.exe
+src-electron/resources/_node_tmp/
+src-electron/resources/backend-config.json
+src-tauri/resources/backend-config.json
+
+# Windows installer hosted for the landing-page download button
+public/downloads/*.exe

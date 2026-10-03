@@ -1,0 +1,28 @@
+appId: com.payroll.app
+productName: Payroll
+copyright: Payroll
+asar: true
+directories:
+  output: dist-electron
+files:
+  - src-electron/main.cjs
+  - src-electron/loading.html
+extraMetadata:
+  main: src-electron/main.cjs
+extraResources:
+  - from: src-electron/resources
+    to: app-server
+    filter:
+      - "**/*"
+win:
+  target:
+    - nsis
+    - portable
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: Payroll-Setup.exe
+portable:
+  artifactName: Payroll-Portable.exe

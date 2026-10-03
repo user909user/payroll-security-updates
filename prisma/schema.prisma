@@ -1,0 +1,280 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  admin
+  staff
+}
+
+enum OvertimeUnit {
+  hour
+  day
+  fixed
+}
+
+enum AttendanceStatus {
+  present
+  absent
+  half
+}
+
+enum PaymentType {
+  salary
+  advance
+  repayment
+}
+
+enum AdjustmentScope {
+  employee
+  all
+}
+
+enum AdjustmentMode {
+  percent
+  amount
+}
+
+// ─── Organization ─────────────────────────────────────────────────────────────
+
+model Organization {
+  id         String   @id @default(uuid())
+  name       String
+  created_at DateTime @default(now())
+
+  outlets              Outlet[]
+  profiles             Profile[]
+  audit_logs           AuditLog[]
+  salary_adjustments   SalaryAdjustment[]
+  overtime_adjustments OvertimeRateAdjustment[]
+}
+
+// ─── Profile (linked to Supabase auth.users) ──────────────────────────────────
+
+model Profile {
+  id         String   @id // = Supabase auth.users.id (UUID)
+  org_id     String
+  email      String   @unique
+  username   String   @unique
+  role       UserRole @default(staff)
+  outlet_id  String? // staff locked to one outlet; admin usually null
+  created_at DateTime @default(now())
+
+  org                  Organization             @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  outlet               Outlet?                  @relation(fields: [outlet_id], references: [id], onDelete: SetNull)
+  salary_payments      SalaryPayment[]
+  audit_logs           AuditLog[]
+  salary_adjustments   SalaryAdjustment[]
+  overtime_adjustments OvertimeRateAdjustment[]
+
+  @@index([org_id])
+  @@index([username])
+  @@index([outlet_id])
+}
+
+// ─── Outlet ───────────────────────────────────────────────────────────────────
+
+model Outlet {
+  id             String       @id @default(uuid())
+  org_id         String
+  name           String
+  overtime_rate  Decimal      @default(0) @db.Decimal(10, 2)
+  allowance_rate Decimal      @default(0) @db.Decimal(10, 2)
+  overtime_unit  OvertimeUnit @default(hour)
+  created_at     DateTime     @default(now())
+
+  org                  Organization             @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  employees            Employee[]
+  profiles             Profile[]
+  salary_adjustments   SalaryAdjustment[]
+  overtime_adjustments OvertimeRateAdjustment[]
+  audit_logs           AuditLog[]
+  public_holidays      PublicHoliday[]
+
+  @@index([org_id])
+}
+
+// ─── Employee ─────────────────────────────────────────────────────────────────
+
+model Employee {
+  id              String   @id @default(uuid())
+  outlet_id       String
+  name            String
+  monthly_salary  Decimal  @db.Decimal(10, 2)
+  overtime_rate   Decimal  @default(0) @db.Decimal(10, 2) // ₹ per OT day; calendar only marks OT on/off
+  allowance_rate  Decimal  @default(0) @db.Decimal(10, 2) // ₹ per present day allowance
+  paid_leave_days Int      @default(0)
+  salary_hidden   Boolean  @default(false)
+  created_at      DateTime @default(now())
+
+  outlet             Outlet             @relation(fields: [outlet_id], references: [id], onDelete: Cascade)
+  attendance_records AttendanceRecord[]
+  payroll_summaries  PayrollSummary[]
+  salary_payments    SalaryPayment[]
+
+  @@index([outlet_id])
+}
+
+// ─── AttendanceRecord ─────────────────────────────────────────────────────────
+
+model AttendanceRecord {
+  id             String           @id @default(uuid())
+  employee_id    String
+  date           DateTime         @db.Date
+  status         AttendanceStatus
+  overtime_units Decimal?         @db.Decimal(8, 2)
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @updatedAt
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@unique([employee_id, date])
+  @@index([employee_id])
+}
+
+model PublicHoliday {
+  id         String   @id @default(uuid())
+  outlet_id  String
+  date       DateTime @db.Date
+  name       String?
+  created_at DateTime @default(now())
+
+  outlet Outlet @relation(fields: [outlet_id], references: [id], onDelete: Cascade)
+
+  @@unique([outlet_id, date])
+  @@index([outlet_id, date])
+}
+
+// ─── PayrollSummary ───────────────────────────────────────────────────────────
+
+model PayrollSummary {
+  id                      String   @id @default(uuid())
+  employee_id             String
+  month                   Int // 1–12
+  year                    Int
+  days_present            Int
+  days_absent             Int
+  days_half               Int      @default(0)
+  paid_leave_days         Int
+  base_pay                Decimal  @db.Decimal(10, 2)
+  overtime_total_units    Decimal  @db.Decimal(8, 2)
+  overtime_rate_snapshot  Decimal  @default(0) @db.Decimal(10, 2)
+  overtime_pay            Decimal  @db.Decimal(10, 2)
+  allowance_rate_snapshot Decimal  @default(0) @db.Decimal(10, 2)
+  allowance_pay           Decimal  @default(0) @db.Decimal(10, 2)
+  extra_allowance         Decimal  @default(0) @db.Decimal(10, 2)
+  narration               String?
+  total_pay               Decimal  @db.Decimal(10, 2)
+  salary_given            Decimal  @default(0) @db.Decimal(10, 2)
+  previous_balance        Decimal  @default(0) @db.Decimal(10, 2)
+  monthly_balance         Decimal  @default(0) @db.Decimal(10, 2)
+  closing_balance         Decimal  @default(0) @db.Decimal(10, 2)
+  generated_at            DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+
+  @@unique([employee_id, month, year])
+  @@index([employee_id])
+}
+
+// ─── SalaryPayment ────────────────────────────────────────────────────────────
+
+model SalaryPayment {
+  id          String      @id @default(uuid())
+  employee_id String
+  month       Int
+  year        Int
+  amount      Decimal     @db.Decimal(10, 2)
+  type        PaymentType @default(salary)
+  paid_at     DateTime    @default(now())
+  created_by  String // Profile.id
+  created_at  DateTime    @default(now())
+
+  employee           Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade)
+  created_by_profile Profile  @relation(fields: [created_by], references: [id], onDelete: Cascade)
+
+  @@index([employee_id, month, year])
+}
+
+// ─── SalaryAdjustment (bulk/percent change with undo) ─────────────────────────
+
+model SalaryAdjustment {
+  id          String          @id @default(uuid())
+  org_id      String
+  outlet_id   String?
+  scope       AdjustmentScope
+  employee_id String?
+  mode        AdjustmentMode
+  value       Decimal         @db.Decimal(10, 2)
+  snapshot    String // JSON: [{ id, monthly_salary }]
+  created_by  String
+  created_at  DateTime        @default(now())
+  undone_at   DateTime?
+
+  org     Organization @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  outlet  Outlet?      @relation(fields: [outlet_id], references: [id], onDelete: SetNull)
+  creator Profile      @relation(fields: [created_by], references: [id], onDelete: Cascade)
+
+  @@index([org_id, created_at])
+  @@index([outlet_id, created_at])
+}
+
+// ─── OvertimeRateAdjustment (batch OT rate change with undo) ──────────────────
+
+model OvertimeRateAdjustment {
+  id          String    @id @default(uuid())
+  org_id      String
+  outlet_id   String?
+  snapshot    String // JSON: [{ id, name, overtime_rate }] previous rates
+  details     String // human summary e.g. "Abc 200 → 300"
+  apply_month Int? // if set, payroll OT recalculated for this month
+  apply_year  Int?
+  created_by  String
+  created_at  DateTime  @default(now())
+  undone_at   DateTime?
+
+  org     Organization @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  outlet  Outlet?      @relation(fields: [outlet_id], references: [id], onDelete: SetNull)
+  creator Profile      @relation(fields: [created_by], references: [id], onDelete: Cascade)
+
+  @@index([org_id, created_at])
+  @@index([outlet_id, created_at])
+}
+
+// ─── AuditLog ─────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  org_id        String
+  outlet_id     String?
+  user_id       String
+  entity_type   String // e.g. "Employee", "AttendanceRecord", "Outlet"
+  entity_id     String
+  field_changed String?
+  old_value     String?
+  new_value     String?
+  highlighted   Boolean  @default(false)
+  timestamp     DateTime @default(now())
+
+  org    Organization @relation(fields: [org_id], references: [id], onDelete: Cascade)
+  outlet Outlet?      @relation(fields: [outlet_id], references: [id], onDelete: SetNull)
+  user   Profile      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([org_id, timestamp])
+  @@index([outlet_id, timestamp])
+  @@index([entity_type, entity_id])
+  @@index([user_id])
+}

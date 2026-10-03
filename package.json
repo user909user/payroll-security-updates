@@ -1,0 +1,60 @@
+{
+  "name": "payroll-system",
+  "version": "0.1.0",
+  "private": true,
+  "allowScripts": {
+    "@prisma/client@6.4.0": true,
+    "@prisma/engines@6.4.0": true,
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true,
+    "esbuild@0.28.2": true,
+    "prisma@6.4.0": true,
+    "unrs-resolver@1.12.2": true
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "tsx --env-file=.env prisma/seed.ts",
+    "desktop:prepare": "node scripts/prepare-desktop.mjs",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "electron:dev": "electron src-electron/main.cjs",
+    "electron:prepare": "node scripts/prepare-desktop.mjs src-electron/resources",
+    "electron:build": "node scripts/prepare-desktop.mjs src-electron/resources && electron-builder --win --config src-electron/electron-builder.yml"
+  },
+  "prisma": {
+    "seed": "tsx --env-file=.env prisma/seed.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.7.1",
+    "@prisma/client": "^6.4.0",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.3",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.31.0",
+    "next": "16.3.8",
+    "prisma": "^6.4.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "^7.85.0",
+    "swr": "^2.5.1",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "babel-plugin-react-compiler": "1.0.0",
+    "electron": "44.5.1",
+    "electron-builder": "^26.15.3",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  }
+}
